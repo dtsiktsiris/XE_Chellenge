@@ -6,9 +6,12 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import utils.SearchResultsPageUtils;
 import utils.WebElementUtils;
@@ -17,20 +20,29 @@ import java.time.Duration;
 import java.util.List;
 
 public class XETest {
-    @Test
-    public void testProperty(){
-        WebDriver driver = new ChromeDriver();
+
+    WebDriver driver;
+    WebDriverWait wait;
+
+
+    @BeforeMethod
+    public void beforeTest() {
+        driver = new ChromeDriver();
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         driver.get("https://www.xe.gr/property/");
+
+    }
+
+    @Test
+    public void testResults() {
         PropertyPage propertyPage = new PropertyPage(driver);
         SearchResultsPage searchResultsPage = new SearchResultsPage(driver);
-
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.acceptAllCookiesButton));
         propertyPage.acceptAllCookies();
 
-        Assert.assertEquals( propertyPage.getSelectedTransaction(),"Ενοικίαση");
-        Assert.assertEquals( propertyPage.getSelectedType(),"Κατοικία");
+        Assert.assertEquals(propertyPage.getSelectedTransaction(), "Ενοικίαση");
+        Assert.assertEquals(propertyPage.getSelectedType(), "Κατοικία");
 
         propertyPage.typeOnGeoAreaInput("Παγκράτι");
         wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.geoAreaSuggestions));
@@ -43,6 +55,12 @@ public class XETest {
             wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.geoAreaSuggestions));
 
             propertyPage.selectGeoAreaSuggestionByText(suggestions.get(i));
+        }
+
+        if (suggestions.size() > 1) {
+            Assert.assertEquals(propertyPage.getAreaTagButton().getText(), suggestions.size() + " περιοχές");
+        } else {
+            Assert.assertEquals(propertyPage.getTagValueButton().getText(), suggestions.get(0));
         }
 
         propertyPage.clickSearchButton();
@@ -64,29 +82,159 @@ public class XETest {
 
         searchResultsPage.getSizeFilterButton().click(); // close form
 
-        Assert.assertEquals(searchResultsPage.getPriceFilterButton().getText(), minPrice+" - "+maxPrice+" €");
-        Assert.assertEquals(searchResultsPage.getSizeFilterButton().getText(), minSize+" - "+maxSize+" τ.μ.");
+        Assert.assertEquals(searchResultsPage.getPriceFilterButton().getText(), minPrice + " - " + maxPrice + " €", "Price text not match the parameters");
+        Assert.assertEquals(searchResultsPage.getSizeFilterButton().getText(), minSize + " - " + maxSize + " τ.μ.", "Size text not match the parameters");
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.propertyAdTitle));
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-        List<Integer> sizes = SearchResultsPageUtils.extractSizesFromTitles(searchResultsPage.getPropertyAdTitles());
-
-        for(Integer size : sizes){
-            System.out.println(size);
-            Assert.assertTrue(minSize <= size && size <= maxSize, "Assert size is between criteria" );
-        }
 
         int resultsCount = SearchResultsPageUtils.extractResultsCount(searchResultsPage.getCommonResultsTitleContainer().getText());
+        System.out.println("Results " + resultsCount);
 
-        WebElementUtils.PageScrollAndWait(driver, 0.1f,2);
+        WebElementUtils.PageScrollProgressively(driver, 0.025f);
 
-        List<WebElement> prices = searchResultsPage.getPropertyAdPrices();
-        Assert.assertEquals(prices.size(), resultsCount);
-        System.out.println(resultsCount);
-//        for(Integer price : prices){
-//            Assert.assertTrue(minPrice <= price && price <= maxPrice, "Assert price is between criteria" );
-//        }
+        List<Integer> sizes = SearchResultsPageUtils.extractSizesFromTitles(searchResultsPage.getPropertyAdTitles());
 
-//        System.out.println(prices.get(0));
+        Assert.assertEquals(sizes.size(), resultsCount, "Check that we get as many elements as the results");
+
+        for (Integer size : sizes) {
+            Assert.assertTrue(minSize <= size && size <= maxSize, "Assert size is between criteria");
+        }
+
+        List<Integer> prices = SearchResultsPageUtils.extractPrices(searchResultsPage.getPropertyAdPrices());
+        Assert.assertEquals(prices.size(), resultsCount, "Check that we get as many elements as the results");
+
+        for (Integer price : prices) {
+            Assert.assertTrue(minPrice <= price && price <= maxPrice, "Assert price is between criteria");
+        }
+
+        WebElementUtils.PageScrollTop(driver);
+
+        searchResultsPage.getSortingDropdown().click();
+        searchResultsPage.getPriceDescOption().click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.propertyAdTitle));
+
+        WebElementUtils.PageScrollProgressively(driver, 0.025f);
+
+        prices = SearchResultsPageUtils.extractPrices(searchResultsPage.getPropertyAdPrices());
+        Assert.assertEquals(prices.size(), resultsCount, "Check that we get as many elements as the results");
+
+        for (int i = 0; i < prices.size() - 1; i++) {
+            Assert.assertTrue(prices.get(i) >= prices.get(i + 1), "Previous price should be higher");
+        }
+    }
+
+    @Test
+    public void testImagesAndPropertyPopup() {
+        PropertyPage propertyPage = new PropertyPage(driver);
+        SearchResultsPage searchResultsPage = new SearchResultsPage(driver);
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.acceptAllCookiesButton));
+        propertyPage.acceptAllCookies();
+
+        propertyPage.typeOnGeoAreaInput("Παγκράτι");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.geoAreaSuggestions));
+
+        List<String> suggestions = WebElementUtils.getTextFromElements(propertyPage.getGeoAreaSuggestions());
+        propertyPage.selectGeoAreaSuggestionByText(suggestions.get(0));
+
+        for (int i = 1; i < suggestions.size(); i++) {
+            propertyPage.typeOnGeoAreaInput("Παγκράτι");
+            wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.geoAreaSuggestions));
+
+            propertyPage.selectGeoAreaSuggestionByText(suggestions.get(i));
+        }
+        propertyPage.clickSearchButton();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.priceFilterButton));
+
+        searchResultsPage.getPriceFilterButton().click();
+
+        int minPrice = 200;
+        int maxPrice = 700;
+        searchResultsPage.typeOnMinPriceFilterInput(String.valueOf(minPrice));
+        searchResultsPage.typeOnMaxPriceFilterInput(String.valueOf(maxPrice));
+
+        searchResultsPage.getSizeFilterButton().click();
+
+        int minSize = 75;
+        int maxSize = 150;
+        searchResultsPage.typeOnMinSizeFilterInput(String.valueOf(minSize));
+        searchResultsPage.typeOnMaxSizeFilterInput(String.valueOf(maxSize));
+
+        searchResultsPage.getSizeFilterButton().click(); // close form
+        wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.propertyAdTitle));
+
+        Actions action = new Actions(driver);
+        action.moveToElement(searchResultsPage.getFirstCarousel()).perform();
+
+        String classesFirst = searchResultsPage.getFirstCarousel().findElement(By.cssSelector("div[data-index='0']")).getAttribute("class");
+        assert classesFirst != null;
+        Assert.assertTrue(classesFirst.contains("slick-current"));
+
+        String classesSecond = searchResultsPage.getFirstCarousel().findElement(By.cssSelector("div[data-index='1']")).getAttribute("class");
+        assert classesSecond != null;
+        Assert.assertFalse(classesSecond.contains("slick-current"));
+
+        searchResultsPage.getFirstCarouselNextButton().click();
+
+        classesFirst = searchResultsPage.getFirstCarousel().findElement(By.cssSelector("div[data-index='0']")).getAttribute("class");
+        assert classesFirst != null;
+        Assert.assertFalse(classesFirst.contains("slick-current"));
+
+        classesSecond = searchResultsPage.getFirstCarousel().findElement(By.cssSelector("div[data-index='1']")).getAttribute("class");
+        assert classesSecond != null;
+        Assert.assertTrue(classesSecond.contains("slick-current"));
+
+        action.moveToElement(searchResultsPage.getFirstCarousel()).perform();
+
+        try {
+            Thread.sleep(1000); // this is for animation to finish
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        searchResultsPage.getFirstCarouselPrevButton().click();
+
+        wait.until(ExpectedConditions.attributeContains(searchResultsPage.getFirstCarousel().findElement(By.cssSelector("div[data-index='0']")), "class", "slick-current"));
+
+        classesFirst = searchResultsPage.getFirstCarousel().findElement(By.cssSelector("div[data-index='0']")).getAttribute("class");
+        assert classesFirst != null;
+        Assert.assertTrue(classesFirst.contains("slick-current"));
+
+        classesSecond = searchResultsPage.getFirstCarousel().findElement(By.cssSelector("div[data-index='1']")).getAttribute("class");
+        assert classesSecond != null;
+        Assert.assertFalse(classesSecond.contains("slick-current"));
+
+        WebElementUtils.PageScrollProgressively(driver, 0.025f);
+
+        List<WebElement> carousels = searchResultsPage.getCarousels();
+        Assert.assertFalse(carousels.isEmpty());
+
+        int imageContains;
+        for (WebElement carousel : carousels) {
+            imageContains = carousel.findElements(By.cssSelector("div.slick-slide:not(.slick-cloned)")).size();
+            // If it's a multiple ad, we check only first
+            Assert.assertTrue(imageContains < 31, "Check that images are no more than 30");
+        }
+
+        WebElementUtils.PageScrollTop(driver);
+
+        Assert.assertFalse(searchResultsPage.getAdImageLinks().isEmpty());
+        for(WebElement imageLink : searchResultsPage.getAdImageLinks()){
+            if (imageLink.findElements(By.cssSelector("span.common-ad-label")).isEmpty()  ||
+              !imageLink.findElement(By.cssSelector("span.common-ad-label")).getText().equals("Πολλαπλές αγγελίες")){
+                imageLink.click();
+                wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.phonesButton));
+
+                Assert.assertEquals(searchResultsPage.getPhonesButton().getText(), "Προβολή τηλεφώνου");// I observe if screen is small changes to "Κλήση"
+
+                searchResultsPage.getPhonesButton().click();
+                wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.phones));
+                Assert.assertTrue(searchResultsPage.getPhones().isDisplayed());
+                searchResultsPage.getClosePhonesModalButton().click();
+                searchResultsPage.getCloseAdModalButton().click();
+            } else {
+                imageLink.click();
+            }
+        }
     }
 }

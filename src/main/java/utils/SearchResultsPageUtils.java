@@ -19,17 +19,14 @@ public class SearchResultsPageUtils {
         return sizes;
     }
 
-    public static int extractPrice(WebElement title){
-        int i =StringUtils.extractInteger(title.getText());
-        System.out.println(i);
-        return StringUtils.extractInteger(title.getText());
+    public static int extractPrice(WebElement element){
+        return StringUtils.extractInteger(element.getText());
     }
 
     public static List<Integer> extractPrices(List<WebElement> elements){
         List<Integer> sizes = new ArrayList<>();
         for (WebElement element : elements ){
-            System.out.println(element.getText());
-//            sizes.add(SearchResultsPageUtils.extractPrice(element));
+            sizes.add(SearchResultsPageUtils.extractPrice(element));
         }
         return sizes;
     }

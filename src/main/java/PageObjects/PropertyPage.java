@@ -15,6 +15,8 @@ public class PropertyPage {
 
     public By acceptAllCookiesButton = By.cssSelector("div.qc-cmp2-summary-buttons > button[mode='primary']");
     public By searchButton = By.cssSelector("input[data-testid='submit-input']");
+    public By areaTagButton = By.cssSelector("button.area-tag" );
+    public By tagValueButton = By.cssSelector("button[data-testid='tag-value']");
     public By geoAreaInput = By.cssSelector("input[data-testid='area-input']");
     public By geoAreaSuggestions = By.cssSelector("div.dropdown-panel > button");
     public By geoAreaSuggestionByText;
@@ -23,6 +25,14 @@ public class PropertyPage {
 
     public void acceptAllCookies(){
         driver.findElement(acceptAllCookiesButton).click();
+    }
+
+    public WebElement getAreaTagButton(){
+        return driver.findElement(areaTagButton);
+    }
+
+    public WebElement getTagValueButton(){
+        return driver.findElement(tagValueButton);
     }
 
     public void clickSearchButton(){
