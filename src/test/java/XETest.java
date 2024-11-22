@@ -234,6 +234,22 @@ public class XETest {
                 searchResultsPage.getCloseAdModalButton().click();
             } else {
                 imageLink.click();
+                wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.multipleAdsPopupImageLinks));
+                int multipleAdsCount = searchResultsPage.getMultipleAdsPopupImageLinks().size();
+                for(int i=0; i<multipleAdsCount; i++){
+                    wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.multipleAdsPopupImageLinks));
+                    searchResultsPage.getMultipleAdsPopupImageLinks().get(i).click();
+                    wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.phonesButton));
+
+                    Assert.assertEquals(searchResultsPage.getPhonesButton().getText(), "Προβολή τηλεφώνου");// I observe if screen is small changes to "Κλήση"
+
+                    searchResultsPage.getPhonesButton().click();
+                    wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.phones));
+                    Assert.assertTrue(searchResultsPage.getPhones().isDisplayed());
+                    searchResultsPage.getClosePhonesModalButton().click();
+                    searchResultsPage.getCloseAdModalButton().click();
+                }
+                searchResultsPage.getCloseMultipleAdModalButton().click();
             }
         }
     }

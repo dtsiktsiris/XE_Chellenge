@@ -30,6 +30,8 @@ public class SearchResultsPage {
     public By phonesButton = By.cssSelector("button[data-testid='call-action-button']");
     public By closePhonesModalButton = By.cssSelector("div.call-action-modal button[data-testid='xe-modal-close']");
     public By closeAdModalButton = By.cssSelector("div.ad-details-modal button[data-testid='xe-modal-close']");
+    public By closeMultipleAdModalButton = By.cssSelector("div.up-modal button[data-testid='xe-modal-close']");
+    public By multipleAdsPopupImageLinks = By.cssSelector("div.unique-ad-image-container a[data-testid='unique-ad-url']");
 
 
     public WebElement getPriceFilterButton() {
@@ -39,6 +41,11 @@ public class SearchResultsPage {
     public WebElement getClosePhonesModalButton() {
         return driver.findElement(closePhonesModalButton);
     }
+
+    public WebElement getCloseMultipleAdModalButton() {
+        return driver.findElement(closeMultipleAdModalButton);
+    }
+
     public WebElement getCloseAdModalButton() {
         return driver.findElement(closeAdModalButton);
     }
@@ -53,6 +60,10 @@ public class SearchResultsPage {
 
     public WebElement getCommonResultsTitleContainer() {
         return driver.findElement(commonResultsTitleContainer);
+    }
+
+    public List<WebElement> getMultipleAdsPopupImageLinks() {
+        return driver.findElements(multipleAdsPopupImageLinks);
     }
 
     public List<WebElement> getAdImageLinks() {
