@@ -187,8 +187,10 @@ public class XETest {
 
         action.moveToElement(searchResultsPage.getFirstCarousel()).perform();
 
+//        Animation can be waited like with line below, but it is flaky sometimes
+//        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector("div.slick-track[transition]")));
         try {
-            Thread.sleep(1000); // this is for animation to finish
+            Thread.sleep(700); // this is for animation to finish
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -212,20 +214,24 @@ public class XETest {
         int imageContains;
         for (WebElement carousel : carousels) {
             imageContains = carousel.findElements(By.cssSelector("div.slick-slide:not(.slick-cloned)")).size();
-            // If it's a multiple ad, we check only first
+            // If it's a multiple ad, we check only first, next 'for' has the logic, how it can be done
             Assert.assertTrue(imageContains < 31, "Check that images are no more than 30");
         }
 
         WebElementUtils.PageScrollTop(driver);
 
-        Assert.assertFalse(searchResultsPage.getAdImageLinks().isEmpty());
-        for(WebElement imageLink : searchResultsPage.getAdImageLinks()){
+        List<WebElement> imageLinks =searchResultsPage.getAdImageLinks();
+        Assert.assertFalse(imageLinks.isEmpty());
+
+        WebElement imageLink;
+        for (int z = 0; z < imageLinks.size(); z++) { // I did it with traditional for, so you can lower the iterations
+        imageLink = imageLinks.get(z);
             if (imageLink.findElements(By.cssSelector("span.common-ad-label")).isEmpty()  ||
               !imageLink.findElement(By.cssSelector("span.common-ad-label")).getText().equals("Πολλαπλές αγγελίες")){
                 imageLink.click();
                 wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.phonesButton));
 
-                Assert.assertEquals(searchResultsPage.getPhonesButton().getText(), "Προβολή τηλεφώνου");// I observe if screen is small changes to "Κλήση"
+                Assert.assertEquals(searchResultsPage.getPhonesButton().getText(), "Προβολή τηλεφώνου");// I observed if screen is small changes to "Κλήση"
 
                 searchResultsPage.getPhonesButton().click();
                 wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.phones));
@@ -252,5 +258,73 @@ public class XETest {
                 searchResultsPage.getCloseMultipleAdModalButton().click();
             }
         }
+    }
+
+    @Test
+    public void testPagination(){
+        PropertyPage propertyPage = new PropertyPage(driver);
+        SearchResultsPage searchResultsPage = new SearchResultsPage(driver);
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.acceptAllCookiesButton));
+        propertyPage.acceptAllCookies();
+
+        // using different criteria so to have pagination
+        propertyPage.typeOnGeoAreaInput("Πάτρα");
+        wait.until(ExpectedConditions.visibilityOfElementLocated(propertyPage.geoAreaSuggestions));
+
+        List<String> suggestions = WebElementUtils.getTextFromElements(propertyPage.getGeoAreaSuggestions());
+        propertyPage.selectGeoAreaSuggestionByText(suggestions.get(0));
+
+        propertyPage.clickSearchButton();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.priceFilterButton));
+
+        // because first add may be repeated through pages
+        // I use this index to get another add to compare
+        int titleIndex = 5;
+        String titleFirstPage = searchResultsPage.getPropertyAdTitles().get(titleIndex).getText();
+
+        Assert.assertFalse(searchResultsPage.getPaginationLinks().isEmpty(),"Pagination tabs should exist");
+
+        Assert.assertFalse(searchResultsPage.getPaginationLinks().get(0).isDisplayed(), "Previous button should be hidden");
+
+        String classes = searchResultsPage.getPaginationLinks().get(1).getAttribute("class");
+        assert classes != null;
+        Assert.assertTrue(classes.contains("active"),"Pagination tab '1' should be active");
+
+        classes = searchResultsPage.getPaginationLinks().get(2).getAttribute("class");
+        assert classes != null;
+        Assert.assertFalse(classes.contains("active"),"Pagination tab '2' should be inactive");
+
+        searchResultsPage.getPaginationLinks().get(2).click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.propertyAdTitle));
+
+        String titleSecondPage = searchResultsPage.getPropertyAdTitles().get(titleIndex).getText();
+
+        Assert.assertNotEquals(titleSecondPage, titleFirstPage, "Title should be different when page changed");
+
+        classes = searchResultsPage.getPaginationLinks().get(1).getAttribute("class");
+        assert classes != null;
+        Assert.assertFalse(classes.contains("active"),"Pagination tab '1' should be inactive");
+
+        classes = searchResultsPage.getPaginationLinks().get(2).getAttribute("class");
+        assert classes != null;
+        Assert.assertTrue(classes.contains("active"),"Pagination tab '2' should be active");
+
+        Assert.assertTrue(searchResultsPage.getPaginationLinks().get(0).isDisplayed(), "Previous button should be shown after clicking on page 2");
+
+        searchResultsPage.getPaginationNextLink().click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.propertyAdTitle));
+
+        classes = searchResultsPage.getPaginationLinks().get(3).getAttribute("class");
+        assert classes != null;
+        Assert.assertTrue(classes.contains("active"), "Pagination tab '3' should be active");
+
+        searchResultsPage.getPaginationPrevLink().click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(searchResultsPage.propertyAdTitle));
+
+        classes = searchResultsPage.getPaginationLinks().get(2).getAttribute("class");
+        assert classes != null;
+        Assert.assertTrue(classes.contains("active"),"Pagination tab '2' should be active");
     }
 }

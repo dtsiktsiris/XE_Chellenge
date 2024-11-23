@@ -32,10 +32,24 @@ public class SearchResultsPage {
     public By closeAdModalButton = By.cssSelector("div.ad-details-modal button[data-testid='xe-modal-close']");
     public By closeMultipleAdModalButton = By.cssSelector("div.up-modal button[data-testid='xe-modal-close']");
     public By multipleAdsPopupImageLinks = By.cssSelector("div.unique-ad-image-container a[data-testid='unique-ad-url']");
+    public By paginationLinks = By.cssSelector("nav[data-testid='pagination'] li");
 
 
     public WebElement getPriceFilterButton() {
         return driver.findElement(priceFilterButton);
+    }
+
+    public List<WebElement> getPaginationLinks() {
+        return driver.findElements(paginationLinks);
+    }
+
+    public WebElement getPaginationPrevLink() {
+        return driver.findElements(paginationLinks).get(0);
+    }
+
+    public WebElement getPaginationNextLink() {
+        List<WebElement> links = driver.findElements(paginationLinks);
+        return links.get(links.size() - 1);
     }
 
     public WebElement getClosePhonesModalButton() {
